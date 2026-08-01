@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YoungUG — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  .admin-tabs{ display:flex; gap:8px; margin:18px 0 6px; }
+  .admin-tab{
+    background:none; border:1.5px solid var(--line); color:var(--grey);
+    border-radius:20px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer;
+  }
+  .admin-tab.active{ background:var(--yellow); color:var(--ink); border-color:var(--yellow); }
+  .status-pill{
+    display:inline-block; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700;
+  }
+  .status-active{ background:rgba(60,180,90,0.15); color:#5CD37A; }
+  .status-inactive{ background:rgba(210,16,52,0.15); color:#ff9aa8; }
+  .toggle-btn{
+    border:none; border-radius:16px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer;
+  }
+  .toggle-btn.deactivate{ background:var(--red); color:#fff; }
+  .toggle-btn.activate{ background:var(--yellow); color:var(--ink); }
+  .ad-form{ background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-top:14px; }
+  .ad-form textarea{
+    width:100%; background:var(--ink); border:1.5px solid var(--line); color:var(--paper);
+    border-radius:10px; padding:10px 12px; font-size:14px; min-height:70px; margin-bottom:10px;
+  }
+  .ad-form-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--grey); }
+</style>
+</head>
+<body>
+
+<div id="gateScreen" class="gate">
+  <div class="login-card" style="max-width:340px;">
+    <div class="flag-strip"></div>
+    <h1 style="font-size:22px;">ADMIN <span style="color:var(--yellow)">ACCESS</span></h1>
+    <p class="sub">Moderation dashboard — not for regular users.</p>
+    <div id="gateError" class="error-msg"></div>
+    <div class="field">
+      <label for="passcodeInput">Passcode</label>
+      <input id="passcodeInput" type="password" autocomplete="off">
+    </div>
+    <button id="gateBtn" class="primary-btn">Enter</button>
+  </div>
+</div>
+
+<div id="adminScreen" style="display:none;">
+  <div class="topbar">
+    <div class="logo">
+      <div class="flag-strip"></div>
+      <div class="logo-text">young<span>UG</span> — <span>ADMIN</span></div>
+    </div>
+    <button class="logout-btn" id="adminLogoutBtn">Lock</button>
+  </div>
+
+  <div class="admin-wrap">
+    <div class="admin-tabs">
+      <button class="admin-tab active" id="tabUsersBtn">Users</button>
+      <button class="admin-tab" id="tabAdsBtn">Ad</button>
+      <button class="admin-tab" id="tabPostsBtn">Messages</button>
+    </div>
+
+    <!-- USERS -->
+    <div id="usersPanel">
+      <h2 class="feed-title">Group <span>Members</span></h2>
+      <p class="feed-sub" id="userCount"></p>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Name</th><th>Phone number</th><th>Joined</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody id="userRows"></tbody>
+      </table>
+    </div>
+
+    <!-- ADS -->
+    <div id="adsPanel" style="display:none;">
+      <h2 class="feed-title">Text <span>Ad</span></h2>
+      <p class="feed-sub">One ad slot, text only — it appears pinned at the top of everyone's group.</p>
+      <div class="ad-form">
+        <textarea id="adTextInput" placeholder="Write the ad text…"></textarea>
+        <div class="ad-form-row">
+          <label class="checkbox-row">
+            <input type="checkbox" id="adActiveInput"> Show this ad in the group
+          </label>
+          <button class="post-btn" id="saveAdBtn">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- POSTS -->
+    <div id="postsPanel" style="display:none;">
+      <h2 class="feed-title">All <span>Messages</span></h2>
+      <p class="feed-sub" id="postCount"></p>
+      <table class="admin-table">
+        <thead>
+          <tr><th>Author</th><th>Content</th><th>Sent</th><th></th></tr>
+        </thead>
+        <tbody id="adminPostRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script>
+  // Simple client-side passcode gate. This is obscurity, not real
+  // security — anyone with the Supabase anon key could still read/
+  // write data directly. Set your own passcode below before you
+  // deploy, and keep the link private.
+  const ADMIN_PASSCODE = "changeme123";
+
+  const gateScreen = document.getElementById("gateScreen");
+  const adminScreen = document.getElementById("adminScreen");
+  const gateBtn = document.getElementById("gateBtn");
+  const gateError = document.getElementById("gateError");
+  const passcodeInput = document.getElementById("passcodeInput");
+
+  gateBtn.addEventListener("click", () => {
+    if (passcodeInput.value === ADMIN_PASSCODE) {
+      gateScreen.style.display = "none";
+      adminScreen.style.display = "block";
+      loadUsers();
+    } else {
+      gateError.textContent = "Incorrect passcode.";
+      gateError.classList.add("show");
+    }
+  });
+
+  document.getElementById("adminLogoutBtn").addEventListener("click", () => {
+    adminScreen.style.display = "none";
+    gateScreen.style.display = "flex";
+    passcodeInput.value = "";
+  });
+
+  // ---------- Tabs ----------
+  const tabUsersBtn = document.getElementById("tabUsersBtn");
+  const tabAdsBtn = document.getElementById("tabAdsBtn");
+  const tabPostsBtn = document.getElementById("tabPostsBtn");
+  const usersPanel = document.getElementById("usersPanel");
+  const adsPanel = document.getElementById("adsPanel");
+  const postsPanel = document.getElementById("postsPanel");
+
+  function showTab(name) {
+    [tabUsersBtn, tabAdsBtn, tabPostsBtn].forEach((b) => b.classList.remove("active"));
+    [usersPanel, adsPanel, postsPanel].forEach((p) => (p.style.display = "none"));
+    if (name === "users") { tabUsersBtn.classList.add("active"); usersPanel.style.display = "block"; loadUsers(); }
+    if (name === "ads") { tabAdsBtn.classList.add("active"); adsPanel.style.display = "block"; loadAd(); }
+    if (name === "posts") { tabPostsBtn.classList.add("active"); postsPanel.style.display = "block"; loadAllPosts(); }
+  }
+  tabUsersBtn.addEventListener("click", () => showTab("users"));
+  tabAdsBtn.addEventListener("click", () => showTab("ads"));
+  tabPostsBtn.addEventListener("click", () => showTab("posts"));
+
+  // ---------- Users ----------
+  const userRows = document.getElementById("userRows");
+  const userCount = document.getElementById("userCount");
+
+  async function loadUsers() {
+    const users = await fetchAllUsers();
+    userCount.textContent = `${users.length} member${users.length === 1 ? "" : "s"}`;
+
+    userRows.innerHTML = users.map((u) => `
+      <tr>
+        <td>${escapeHtml(u.name)}</td>
+        <td>${escapeHtml(u.phone)}</td>
+        <td>${timeAgo(u.created_at)}</td>
+        <td><span class="status-pill ${u.active ? "status-active" : "status-inactive"}">${u.active ? "Active" : "Deactivated"}</span></td>
+        <td>
+          <button class="toggle-btn ${u.active ? "deactivate" : "activate"}" onclick="toggleUser('${u.id}', ${u.active})">
+            ${u.active ? "Deactivate" : "Activate"}
+          </button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  async function toggleUser(userId, currentlyActive) {
+    await setUserActive(userId, !currentlyActive);
+    await loadUsers();
+  }
+
+  // ---------- Ad ----------
+  const adTextInput = document.getElementById("adTextInput");
+  const adActiveInput = document.getElementById("adActiveInput");
+  const saveAdBtn = document.getElementById("saveAdBtn");
+
+  async function loadAd() {
+    const ad = await fetchLatestAd();
+    adTextInput.value = ad ? ad.text : "";
+    adActiveInput.checked = ad ? ad.active : false;
+  }
+
+  saveAdBtn.addEventListener("click", async () => {
+    saveAdBtn.disabled = true;
+    saveAdBtn.textContent = "Saving…";
+    try {
+      await saveAd(adTextInput.value.trim(), adActiveInput.checked);
+    } finally {
+      saveAdBtn.disabled = false;
+      saveAdBtn.textContent = "Save";
+    }
+  });
+
+  // ---------- Posts ----------
+  const adminPostRows = document.getElementById("adminPostRows");
+  const postCount = document.getElementById("postCount");
+
+  async function loadAllPosts() {
+    const posts = await fetchPosts(500);
+    postCount.textContent = `${posts.length} message${posts.length === 1 ? "" : "s"} total`;
+
+    adminPostRows.innerHTML = posts.map((post) => {
+      let content;
+      if (post.type === "text") {
+        content = escapeHtml(post.content || "");
+      } else if (post.type === "audio") {
+        content = `<audio controls src="${post.audio_url}" style="width:180px;"></audio>`;
+      } else {
+        content = `
+          <img src="${post.image_url}" style="width:70px; height:70px; object-fit:cover; border-radius:6px; display:block;">
+          ${post.content ? `<div style="margin-top:4px;">${escapeHtml(post.content)}</div>` : ""}
+        `;
+      }
+
+      return `
+        <tr>
+          <td>${escapeHtml(post.user_name)}</td>
+          <td>${content}</td>
+          <td>${timeAgo(post.created_at)}</td>
+          <td><button class="delete-btn" onclick="adminDelete('${post.id}')">Delete</button></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  async function adminDelete(postId) {
+    if (!confirm("Delete this message?")) return;
+    await deletePost(postId);
+    await loadAllPosts();
+  }
+</script>
+</body>
+</html>
