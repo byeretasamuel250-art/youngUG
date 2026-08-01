@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YoungUG — Speak. Be Heard.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================== LOGIN SCREEN ===================== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="flag-strip"></div>
+    <h1>YOUNG<span>UG</span></h1>
+    <p class="sub">One national feed where Ugandan youth speak their mind — in text or your own voice.</p>
+
+    <div id="loginError" class="error-msg"></div>
+
+    <div class="field">
+      <label for="nameInput">Your name</label>
+      <input id="nameInput" type="text" placeholder="e.g. Brenda Nakato" autocomplete="name">
+    </div>
+    <div class="field">
+      <label for="phoneInput">Phone number</label>
+      <input id="phoneInput" type="tel" placeholder="e.g. 0774218092" autocomplete="tel">
+    </div>
+    <button id="loginBtn" class="primary-btn">Join the conversation</button>
+    <p class="login-note">No password needed. If your number is new, we create your account. If it's already registered, we log you straight in.</p>
+  </div>
+</div>
+
+<!-- ===================== FEED SCREEN ===================== -->
+<div id="feedScreen" style="display:none;">
+  <div class="topbar">
+    <div class="logo">
+      <div class="flag-strip"></div>
+      <div class="logo-text">YOUNG<span>UG</span></div>
+    </div>
+    <div class="user-chip">
+      <span id="userNameChip"></span>
+      <button class="logout-btn" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+
+  <div class="feed-wrap">
+    <h2 class="feed-title">Youth <span>Group</span></h2>
+    <p class="feed-sub">One national group — everyone sees the same messages, text or voice.</p>
+
+    <div class="composer">
+      <textarea id="postText" placeholder="Message the group…" rows="2"></textarea>
+      <div id="audioPreviewWrap"></div>
+      <div id="imagePreviewWrap"></div>
+      <div class="composer-actions">
+        <div class="composer-actions-left">
+          <button id="micBtn" class="mic-btn">
+            <span class="mic-dot"></span>
+            <span id="micBtnLabel">Record a voice note</span>
+          </button>
+          <button id="photoBtn" class="mic-btn">📷 <span>Photo / poster</span></button>
+          <input type="file" id="photoInput" accept="image/*" style="display:none;">
+        </div>
+        <button id="postBtn" class="post-btn" disabled>Send</button>
+      </div>
+    </div>
+
+    <div id="feedList" class="chat-list"></div>
+    <div id="feedLoading" class="loading">Loading the group…</div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
